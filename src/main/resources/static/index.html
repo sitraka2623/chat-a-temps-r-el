@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <title>Chat Network</title>
+    <!-- Ajout du favicon pour éviter l'erreur 404 -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/css/main.css">
+    <!-- Ajout de SweetAlert2 pour les notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Ajout de SheetJS pour le traitement des fichiers Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        .chat-meta li:not(:first-child):before {
+            content: "-";
+        }
+
+        .hidden {
+            display: none;
+        }
+        .video-call-icon {
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .video-call-controls {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .video-call-controls button {
+            font-size: 18px;
+            padding: 10px;
+            border: none;
+            border-radius: 50%;
+            background-color: #f1f1f1;
+            cursor: pointer;
+        }
+
+        .video-call-controls button:hover {
+            background-color: #ddd;
+        }
+
+        .form-control-wrap {
+            margin-bottom: 10px;
+        }
+
+        .upload-btn {
+            display: inline-block;
+            padding: 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .upload-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        #video-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 9999;
+            background: rgba(0,0,0,0.8);
+            border-radius: 10px;
+            padding: 20px;
+            width: 80%;
+            height: 80%;
+        }
+        #local-video, #remote-video {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="nk-body npc-invest bg-lighter no-touch nk-nio-theme chat-profile-autohide as-mobile">
+<div id="username-page">
+    <div class="nk-app-root">
+        <div class="nk-main">
+            <div class="nk-wrap nk-wrap-nosidebar">
+                <div class="nk-content">
+                    <div class="nk-split nk-split-page nk-split-md">
+                        <div class="nk-split-content nk-block-area nk-block-area-column nk-auth-container bg-white">
+                            <div class="nk-block nk-block-middle nk-auth-body">
+                                <div class="brand-logo pb-5">
+                                    <a href="/" class="logo-link">
+                                        <img class="logo-img logo-img-lg" src="/images/sms.png" alt="logo">
+                                    </a>
+                                </div>
+                                <div class="nk-block-head">
+                                    <div class="nk-block-head-content">
+                                        <h5 class="nk-block-title fw-bolder">Connexion</h5>
+                                        <div class="nk-block-des">
+                                            <p>Bon retour parmi nous, Veuillez vous connecter pour continuer !</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <form method="post" id="usernameForm" name="usernameForm">
+                                    <div class="form-group">
+                                        <label for="name" class="form-label required">Utilisateur</label>
+                                        <div class="form-control-wrap">
+                                            <input type="text" id="name" name="name" required="required" placeholder="Nom d'utilisateur..." class="form-control l form-control-lg" oninput="validateInput(this)">
+                                            <script>
+                                                function validateInput(input) {
+                                                    input.value = input.value.replace(/[^a-zA-Z\s]/g, '');
+                                                }
+                                            </script>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-lg btn-primary btn-block">Se connecter</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div id="bg" class="nk-split-content nk-split-stretch bg-abstract" data-controller="background" style="background: url(/images/test.png) rgba(0,0,0,0.3); background-size: cover; background-blend-mode: overlay;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="chat-page" class="hidden">
+    <div class="nk-app-root">
+        <div class="nk-wrap">
+            <div class="nk-content nk-content-fluid">
+                <div class="container-xl wide-xl">
+                    <div class="nk-content-inner">
+                        <div class="nk-content-body">
+                            <div class="nk-chat shadow">
+                                <div class="nk-chat-body show-chat">
+                                    <div class="nk-chat-head">
+                                        <ul class="nk-chat-head-info">
+                                            <li class="nk-chat-head-user">
+                                                <div class="user-info">
+                                                    <div class="lead-text"><img src="/images/logo.png" width="60px" height="60px"></div>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                        <ul class="nk-chat-head-tools">
+                                            <li>
+                                                <button class="btn btn-round btn-danger" id="logout">
+                                                    Quitter
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="nk-chat-panel" id="messageArea">
+                                    </div>
+                                    <div class="nk-chat-editor">
+                                        <form method="post" id="messageForm" name="messageForm" class="nk-chat-editor-form d-inline-block">
+                                            <div class="form-control-wrap">
+                                                <input aria-label="message" type="text" name="message" class="form-control form-control-simple no-resize" id="message" placeholder="message..." />
+                                            </div>
+                                        </form>
+                                        <ul class="nk-chat-editor-tools g-2">
+                                            <li>
+                                                <button type="submit" form="messageForm" class="btn btn-round btn-primary">
+                                                    Envoyer
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <span class="video-call-icon" id="videoCallButton">📹</span>
+                                            </li>
+                                            <li>
+                                                <form id="uploadForm" enctype="multipart/form-data">
+                                                    <label for="fileInput" class="upload-btn">Télécharger un fichier</label>
+                                                    <input type="file" id="fileInput" name="file" class="file-input"/>
+                                                    <button type="button" id="uploadButton" class="upload-btn">Envoyer le fichier</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Video Call Modal -->
+<div id="video-container" class="hidden">
+    <video id="local-video" autoplay muted></video>
+    <video id="remote-video" autoplay></video>
+    <div class="video-call-controls">
+        <button onclick="endVideoCall()">Finir l'appel</button>
+    </div>
+</div>
+
+<!-- Scripts nécessaires -->
+<script src="/js/sockjs.js"></script>
+<script src="/js/stomp.js"></script>
+<script src="/js/main.js"></script>
+<!-- Remarque : Vérifiez que les fichiers de polices (DMSans-*.woff2, .woff, .ttf) sont présents dans /fonts/.
+   Ouvrez /css/main.css et assurez-vous que les chemins dans @font-face sont corrects, par exemple :
+   @font-face {
+       font-family: 'DMSans';
+       src: url('/fonts/DMSans-Medium.woff2') format('woff2');
+       font-display: swap;
+   }
+   Ajoutez des polices de secours : font-family: 'DMSans', Arial, sans-serif;
+-->
+</body>
+</html>

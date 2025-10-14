@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Connexion</title>
+</head>
+<body>
+<h2>Connexion au chat</h2>
+<form th:action="@{/login}" method="post">
+  <label>Nom d'utilisateur :</label>
+  <input type="text" name="username" /><br/>
+
+  <label>Mot de passe :</label>
+  <input type="password" name="password" /><br/>
+
+  <button type="submit">Se connecter</button>
+</form>
+
+<div th:if="${param.error}">
+  <p style="color: red;">Identifiants incorrects</p>
+</div>
+<div th:if="${param.logout}">
+  <p style="color: green;">Déconnecté avec succès</p>
+</div>
+</body>
+</html>
