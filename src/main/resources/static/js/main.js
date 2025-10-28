@@ -234,28 +234,41 @@ async function onMessageReceived(payload) {
         </div>
     `;
 
-    const fileMessage = (message) => `
-        <div class="chat ${username === message.sender ? 'is-me' : 'is-you'}">
-            <div class="chat-avatar">
-                <div class="user-avatar fw-bold" style="background-color: ${getAvatarColor(message.sender)}">
-                    <span>${message.sender.charAt(0).toUpperCase()}</span>
-                </div>
-            </div>
-            <div class="chat-content">
-                <div class="chat-bubbles">
-                    <div class="chat-bubble">
-                        <div class="chat-msg">
-                            <a href="${message.fileUrl}" target="_blank">📁 Télécharger ${message.fileName || message.fileUrl}</a>
-                        </div>
+    const fileMessage = (message) => {
+        // Détecter si c'est une image en vérifiant l'extension ou le type MIME
+        const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+        const fileName = message.fileName || message.fileUrl;
+        const isImage = message.fileType ? message.fileType.startsWith('image/') :
+            imageExtensions.some(ext => fileName.toLowerCase().endsWith(ext));
+
+        // Contenu différent selon le type de fichier
+        const fileContent = isImage
+            ? `<img src="${message.fileUrl}" alt="${message.fileName || 'Image'}" style="max-width: 300px; max-height: 300px; border-radius: 8px; cursor: pointer; display: block;" onclick="window.open('${message.fileUrl}', '_blank')" />`
+            : `<a href="${message.fileUrl}" target="_blank">📁 Télécharger ${message.fileName || message.fileUrl}</a>`;
+
+        return `
+            <div class="chat ${username === message.sender ? 'is-me' : 'is-you'}">
+                <div class="chat-avatar">
+                    <div class="user-avatar fw-bold" style="background-color: ${getAvatarColor(message.sender)}">
+                        <span>${message.sender.charAt(0).toUpperCase()}</span>
                     </div>
                 </div>
-                <ul class="chat-meta">
-                    <li>${message.sender}</li>
-                    <li><time>${message.time}</time></li>
-                </ul>
+                <div class="chat-content">
+                    <div class="chat-bubbles">
+                        <div class="chat-bubble">
+                            <div class="chat-msg">
+                                ${fileContent}
+                            </div>
+                        </div>
+                    </div>
+                    <ul class="chat-meta">
+                        <li>${message.sender}</li>
+                        <li><time>${message.time}</time></li>
+                    </ul>
+                </div>
             </div>
-        </div>
-    `;
+        `;
+    };
 
     switch (message.type) {
         case 'JOIN':
@@ -305,7 +318,8 @@ document.getElementById('uploadButton').addEventListener('click', function () {
                     type: 'FILE',
                     time: getCurrentTime(),
                     fileUrl: data.fileUrl,
-                    fileName: file.name
+                    fileName: file.name,
+                    fileType: file.type  // Ajout du type MIME pour détecter les images
                 };
                 if (stompClient && stompClient.connected) {
                     stompClient.send("/app/chat.send", {}, JSON.stringify(fileMessage));
